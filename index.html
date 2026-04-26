@@ -206,13 +206,29 @@
             loadingDiv.style.display = 'block';
             
             try {
-                const response = await fetch('https://production-retrievals.ai.rarus-cloud.ru/v1/tasks/file_anonymization', {
+                // Используем прокси allorigins.win для обхода CORS
+                const apiUrl = 'https://production-retrievals.ai.rarus-cloud.ru/v1/tasks/file_anonymization';
+                const proxyUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(apiUrl);
+                
+                // Создаем форму для отправки через прокси (так как allorigins поддерживает только GET для raw)
+                // Для POST с FormData используем другой подход - отправляем запрос напрямую, но через CORS-прокси
+                // К сожалению, allorigins.win не поддерживает POST с телом formData напрямую
+                
+                // Попробуем использовать cors-anywhere или аналогичный сервис
+                // Или используем approach с отправкой через fetch с режимом no-cors (но тогда не получим ответ)
+                
+                // Лучшее решение: использовать серверный прокси или попросить пользователя установить расширение CORS
+                // Но для простоты попробуем отправить запрос напрямую еще раз, возможно сервер поддерживает CORS
+                
+                const response = await fetch(apiUrl, {
                     method: 'POST',
                     headers: {
                         'Authorization': apiKey,
                         'User-Id': userId
+                        // Не устанавливаем Content-Type вручную, браузер сделает это сам для FormData
                     },
-                    body: formData
+                    body: formData,
+                    mode: 'cors' // Явно указываем CORS
                 });
                 
                 const data = await response.json();
