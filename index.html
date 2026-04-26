@@ -206,38 +206,35 @@
             loadingDiv.style.display = 'block';
             
             try {
-                // Используем прокси allorigins.win для обхода CORS
+                // Используем CORS-прокси для обхода ограничений браузера
+                // corsproxy.io поддерживает POST запросы с телом
                 const apiUrl = 'https://production-retrievals.ai.rarus-cloud.ru/v1/tasks/file_anonymization';
-                const proxyUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(apiUrl);
+                const proxyUrl = 'https://corsproxy.io/?' + encodeURIComponent(apiUrl);
                 
-                // Создаем форму для отправки через прокси (так как allorigins поддерживает только GET для raw)
-                // Для POST с FormData используем другой подход - отправляем запрос напрямую, но через CORS-прокси
-                // К сожалению, allorigins.win не поддерживает POST с телом formData напрямую
-                
-                // Попробуем использовать cors-anywhere или аналогичный сервис
-                // Или используем approach с отправкой через fetch с режимом no-cors (но тогда не получим ответ)
-                
-                // Лучшее решение: использовать серверный прокси или попросить пользователя установить расширение CORS
-                // Но для простоты попробуем отправить запрос напрямую еще раз, возможно сервер поддерживает CORS
-                
-                const response = await fetch(apiUrl, {
+                const response = await fetch(proxyUrl, {
                     method: 'POST',
                     headers: {
                         'Authorization': apiKey,
-                        'User-Id': userId
-                        // Не устанавливаем Content-Type вручную, браузер сделает это сам для FormData
+                        'User-Id': userId,
+                        'X-Forwarded-Host': 'production-retrievals.ai.rarus-cloud.ru'
+                        // Content-Type будет установлен автоматически браузером для FormData
                     },
-                    body: formData,
-                    mode: 'cors' // Явно указываем CORS
+                    body: formData
                 });
                 
-                const data = await response.json();
-                
-                if (response.ok) {
-                    showSuccess('Документ успешно отправлен!', data);
-                } else {
-                    showError('Ошибка при обработке: ' + (data.detail || data.message || response.statusText), data);
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    let errorData;
+                    try {
+                        errorData = JSON.parse(errorText);
+                    } catch (e) {
+                        errorData = { raw: errorText };
+                    }
+                    throw new Error(errorData.detail || errorData.message || response.statusText);
                 }
+                
+                const data = await response.json();
+                showSuccess('Документ успешно отправлен!', data);
             } catch (error) {
                 showError('Ошибка сети: ' + error.message);
             } finally {
